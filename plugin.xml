@@ -2,7 +2,7 @@
 <plugin xmlns="http://www.phonegap.com/ns/plugins/1.0"
     xmlns:android="http://schemas.android.com/apk/res/android"
     id="it.alfonsovinti.cordova.plugins.bixolonprint"
-    version="1.4.0">
+    version="1.5.0">
 
     <name>BixolonPrint</name>
     <description>Printing on Bixolon print.</description>
@@ -13,7 +13,7 @@
 
     <engines>
         <engine name="cordova" version=">=3.0.0" />
-    </engines>    
+    </engines>
 
     <js-module src="www/bixolonprint.js" name="BixolonPrint">
         <clobbers target="cordova.plugins.bixolonPrint" />

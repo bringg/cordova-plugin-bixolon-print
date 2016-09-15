@@ -58,6 +58,8 @@ public class BixolonPrint extends CordovaPlugin {
 
     // Action to execute
     public static final String ACTION_PRINT_TEXT = "printText";
+    public static final String ACTION_PRINT_1D_BARCODE = "printBarCode";
+    public static final String ACTION_PRINT_QRCODE = "printQRCode";
     public static final String ACTION_GET_STATUS = "getStatus";
     public static final String ACTION_CUT_PAPER = "cutPaper";
 
@@ -186,6 +188,14 @@ public class BixolonPrint extends CordovaPlugin {
             JSONObject printConfig = args.optJSONObject(1);
             this.optAutoConnect = printConfig.optBoolean("autoConnect");
             this.optToastMessage = printConfig.optBoolean("toastMessage");
+        } else if (ACTION_PRINT_1D_BARCODE.equals(action)) {
+            JSONObject printConfig = args.optJSONObject(1);
+            this.optAutoConnect = printConfig.optBoolean("autoConnect");
+            this.optToastMessage = printConfig.optBoolean("toastMessage");
+        } else if (ACTION_PRINT_QRCODE.equals(action)) {
+            JSONObject printConfig = args.optJSONObject(1);
+            this.optAutoConnect = printConfig.optBoolean("autoConnect");
+            this.optToastMessage = printConfig.optBoolean("toastMessage");
         } else if (ACTION_CUT_PAPER.equals(action)) {
             JSONObject printConfig = args.optJSONObject(0);
             this.optAutoConnect = printConfig.optBoolean("autoConnect");
@@ -234,6 +244,10 @@ public class BixolonPrint extends CordovaPlugin {
 
         if (ACTION_PRINT_TEXT.equals(this.lastActionName)) {
             this.printText();
+        } else if (ACTION_PRINT_1D_BARCODE.equals(this.lastActionName)) {
+            this.printBarCode();
+        } else if (ACTION_PRINT_QRCODE.equals(this.lastActionName)) {
+            this.printQRCode();
         } else if (ACTION_CUT_PAPER.equals(this.lastActionName)) {
             this.cutPaper();
         } else if (ACTION_GET_STATUS.equals(this.lastActionName)) {
@@ -290,6 +304,59 @@ public class BixolonPrint extends CordovaPlugin {
         }
 
         Log.d(TAG, "BixolonPrint.onDisconnect_END");
+    }
+
+    private void printQRCode() {
+        Log.d(TAG, "BixolonPrint.printQRCode_START");
+        Log.d(TAG, "BixolonPrint.printQRCode: not implemented yet.");
+        Log.d(TAG, "BixolonPrint.printQRCode_END");
+    }
+
+    private void printBarCode() {
+        Log.d(TAG, "BixolonPrint.printBarCode_START");
+
+        JSONObject data;
+        JSONObject printConfig;
+        boolean formFeed;
+
+        try {
+            data = this.lastActionArgs.getJSONObject(0);
+            printConfig = this.lastActionArgs.getJSONObject(1);
+            formFeed = printConfig.getBoolean("formFeed");
+        } catch (JSONException e1) {
+            this.isValidAction = false;
+            this.actionError = "print error: " + e1.getMessage();
+            this.disconnect();
+            return;
+        }
+
+        String text = data.optString("text");
+        String align = data.optString("alignment");
+        int width = data.optInt("width");
+        int height = data.optInt("height");
+
+        int barCodeSystem = data.optInt("barcodeSystem");
+        int barcodeAlignment = this.getAlignment(align);
+        int characterPosition = data.optInt("characterPosition");
+
+        try {
+            Log.d(TAG, "BixolonPrint.printBarCode: data: " + text);
+            if(formFeed) {
+                mBixolonPrinter.print1dBarcode(text, barCodeSystem, barcodeAlignment, width, height, characterPosition, false);
+                mBixolonPrinter.formFeed(true);
+            } else {
+                mBixolonPrinter.print1dBarcode(text, barCodeSystem, barcodeAlignment, width, height, characterPosition, true);
+            }
+        } catch (Exception e2) {
+            this.isValidAction = false;
+            this.actionError = "print error: " + e2.getMessage();
+            this.disconnect();
+            return;
+        }
+
+        this.actionSuccess = "print success";
+
+        Log.d(TAG, "BixolonPrint.printBarCode_END");
     }
 
     private void printText() {
@@ -661,10 +728,10 @@ public class BixolonPrint extends CordovaPlugin {
         Log.d(TAG, "BixolonPrint.onMessageRead_END");
         this.getStatus();
     }
-    
 
-    
-	
+
+
+
 	/*         METODI ACCESSORI
 	 ---------------------------------------*/
 
