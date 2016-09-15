@@ -1,12 +1,14 @@
 BixolonPrint Corodva Plugin
 ==============
 
-Cross-platform BixolonPrint Plugin for Cordova / PhoneGap.
+Cross-platform BixolonPrint Plugin for Cordova / PhoneGap. Forked from [alfonsovinti](https://github.com/alfonsovinti/cordova-plugin-bixolon-print.git)
+
+Adding support for QRCode, 1D BarCode
 
 ### Supported Platforms
 
 - Android
-- iOS
+- iOS (QRCode, Barcode still under development)
 
 ## Installation
 Below are the methods for installing this plugin automatically using command line tools.
@@ -14,13 +16,13 @@ Below are the methods for installing this plugin automatically using command lin
 ### Using the Cordova CLI
 
 ```
-$ cordova plugin add https://github.com/alfonsovinti/cordova-plugin-bixolon-print.git
+$ cordova plugin add https://github.com/xyzxyz442/cordova-plugin-bixolon-print.git
 ```
 
 ### Using the Phonegap CLI
 
 ```
-$ phonegap local plugin add https://github.com/alfonsovinti/cordova-plugin-bixolon-print.git
+$ phonegap local plugin add https://github.com/xyzxyz442/cordova-plugin-bixolon-print.git
 ```
 
 ## Plugin Options
@@ -70,6 +72,22 @@ cordova.plugins.bixolonPrint.settings = {
     CP_1258_VIETNAM          : 41, // Android only
     CP_KHMER_CAMBODIA        : 42, // Android only
     CP_1250_CZECH            : 43  // Android only
+
+## Available BarCode System
+
+    UPC_A: 65
+    UPC_E: 66
+    EAN13: 67
+    EAN8: 68,
+    CODE39: 69
+    ITF: 70
+    CODABAR: 71
+    CODE93: 72
+    CODE128: 73
+
+## Available QRCode Model
+    MODEL_1: 49
+    MODEL_2: 50
 
 ## Using the plugin
 
@@ -143,4 +161,38 @@ cordova.plugins.bixolonPrint.printText(
         codePage: cordova.plugins.bixolonPrint.CodePage.CP_1252_LATIN1
     }
 );
+```
+### Print Barcode
+
+```javascript
+cordova.plugins.bixolonPrint.printBarCode({
+  text: value,
+  alignment: 'left', // left, center, right
+  width: 2, // 1 - 6,
+  height: 150,
+  barcodeSystem: cordova.plugins.bixolonPrint.BarCodeSystem.CODE128,
+  characterPosition: cordova.plugins.bixolonPrint.BarCodeCharacterPosition.BELOW_BAR_CODE
+}, function(response) {
+  alert("print success!")
+}, function(error) {
+  alert("print failure: " + error)
+}, {
+  codePage: cordova.plugins.bixolonPrint.CodePage.CP_THAI11
+});
+```
+### Print QRCode
+
+```javascript
+cordova.plugins.bixolonPrint.printQRCode({
+  text: value,
+  alignment: 'center', // left, center, right
+  size: 4, // 1 - 8,
+  model: cordova.plugins.bixolonPrint.QRCodeModel.MODEL_2
+}, function(response) {
+  alert("print success!")
+}, function(error) {
+  alert("print failure: " + error)
+}, {
+  codePage: cordova.plugins.bixolonPrint.CodePage.CP_THAI11
+});
 ```
