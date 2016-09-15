@@ -328,14 +328,15 @@ public class BixolonPrint extends CordovaPlugin {
         String align = data.optString("alignment");
         int size = data.optInt("size");
         int model = data.optInt("model");
+        int qrcodeAlignment = this.getAlignment(align);
 
         try {
             Log.d(TAG, "BixolonPrint.printQRCode: data: " + text);
             if(formFeed) {
-                mBixolonPrinter.printQrCode(text, alignment, model, size, false);
+                mBixolonPrinter.printQrCode(text, qrcodeAlignment, model, size, false);
                 mBixolonPrinter.formFeed(true);
             } else {
-                mBixolonPrinter.printQrCode(text, alignment, model, size, true);
+                mBixolonPrinter.printQrCode(text, qrcodeAlignment, model, size, true);
             }
         } catch (Exception e2) {
             this.isValidAction = false;
