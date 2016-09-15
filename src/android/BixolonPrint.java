@@ -308,7 +308,44 @@ public class BixolonPrint extends CordovaPlugin {
 
     private void printQRCode() {
         Log.d(TAG, "BixolonPrint.printQRCode_START");
-        Log.d(TAG, "BixolonPrint.printQRCode: not implemented yet.");
+
+        JSONObject data;
+        JSONObject printConfig;
+        boolean formFeed;
+
+        try {
+            data = this.lastActionArgs.getJSONObject(0);
+            printConfig = this.lastActionArgs.getJSONObject(1);
+            formFeed = printConfig.getBoolean("formFeed");
+        } catch (JSONException e1) {
+            this.isValidAction = false;
+            this.actionError = "print error: " + e1.getMessage();
+            this.disconnect();
+            return;
+        }
+
+        String text = data.optString("text");
+        String align = data.optString("alignment");
+        int size = data.optInt("size");
+        int model = data.optInt("model");
+
+        try {
+            Log.d(TAG, "BixolonPrint.printQRCode: data: " + text);
+            if(formFeed) {
+                mBixolonPrinter.printQrCode(text, alignment, model, size, false);
+                mBixolonPrinter.formFeed(true);
+            } else {
+                mBixolonPrinter.printQrCode(text, alignment, model, size, true);
+            }
+        } catch (Exception e2) {
+            this.isValidAction = false;
+            this.actionError = "print error: " + e2.getMessage();
+            this.disconnect();
+            return;
+        }
+
+        this.actionSuccess = "print success";
+
         Log.d(TAG, "BixolonPrint.printQRCode_END");
     }
 

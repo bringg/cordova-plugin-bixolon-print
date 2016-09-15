@@ -271,6 +271,50 @@ var BixolonPrintLoader = function(require, exports, module) {
 	 * @param errorCallback
 	 * @param config
 	 */
+	BixolonPrint.prototype.printQRCode = function(data, successCallback, errorCallback, config) {
+
+		if (!this._isFunction(successCallback)) {
+			successCallback = function(response) {
+				console.log('BixolonPrint.printQRCode success: ' + response);
+			};
+		}
+
+		if (!this._isFunction(errorCallback)) {
+			errorCallback = function(error) {
+				console.warn('BixolonPrint.printQRCode failure: ' + error);
+			};
+		}
+
+		var printConfig = this.settings;
+		config = config || {}
+		data = data || {};
+
+		if (!this._isObject(config)) {
+			throw new Error("BixolonPrint.printQRCode failure: config parameter must be a object!");
+		}
+
+		if (!this._isObject(data)) {
+			throw new Error("BixolonPrint.printQRCode failure: data parameter must be a object!");
+		}
+
+		if (config.formFeed === false || config.formFeed === true) {
+			printConfig.formFeed = config.formFeed;
+		}
+
+		exec(
+			successCallback,
+			errorCallback,
+			"BixolonPrint",
+			"printQRCode", [data, printConfig]
+		);
+	};
+
+	/**
+	 *
+	 * @param successCallback
+	 * @param errorCallback
+	 * @param config
+	 */
 	BixolonPrint.prototype.printBarCode = function(data, successCallback, errorCallback, config) {
 
 		if (!this._isFunction(successCallback)) {
