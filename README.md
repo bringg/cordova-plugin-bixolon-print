@@ -130,6 +130,32 @@ cordova.plugins.bixolonPrint.cutPaper(successCallback, errorCallback, config Obj
 cordova.plugins.bixolonPrint.getStatus(successCallback, errorCallback, printStatus Boolean);
 ```
 
+### Print Barcode
+
+```javascript
+var data = {
+  text              : String,    // text to print
+  alignment         : String,    // text align, default left (left, center, right)
+  width             : int,       // 1 - 6
+  height            : int,       //
+  barcodeSystem     : int,       // see "cordova.plugins.bixolonPrint.BarCodeSystem"
+  characterPosition : int        // see "cordova.plugins.bixolonPrint.BarCodeCharacterPosition"
+};
+cordova.plugins.bixolonPrint.printQRCode(data, successCallback, errorCallback, printStatus Boolean);
+```
+
+### QRCode
+
+```javascript
+var data = {
+  text       : String,    // text to print
+  alignment  : String,    // text align, default left (left, center, right)
+  size       : int,       // text width, 1 - 8
+  model      : int,       // see "cordova.plugins.bixolonPrint.QRCodeModel"
+};
+cordova.plugins.bixolonPrint.printQRCode(data, successCallback, errorCallback, printStatus Boolean);
+```
+
 ## Examples
 
 ### Print a text
