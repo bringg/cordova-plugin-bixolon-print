@@ -7,7 +7,7 @@ Adding support for QRCode, 1D BarCode
 
 ### Supported Platforms
 
-- Android
+- Android (Using Bixolon SDK v2.2.9)
 - iOS (QRCode, Barcode still under development)
 
 ## Installation
