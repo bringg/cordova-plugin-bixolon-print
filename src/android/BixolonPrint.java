@@ -36,6 +36,7 @@ import org.apache.cordova.CordovaInterface;
 import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaWebView;
+import org.apache.cordova.PluginResult;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -45,6 +46,10 @@ import com.bixolon.printer.BixolonPrinter;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothDevice;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.os.Handler;
@@ -62,6 +67,12 @@ public class BixolonPrint extends CordovaPlugin {
     public static final String ACTION_PRINT_QRCODE = "printQRCode";
     public static final String ACTION_GET_STATUS = "getStatus";
     public static final String ACTION_CUT_PAPER = "cutPaper";
+    public static final String ACTION_START_MSR_READER_LISTENER = "startMsrReaderListener";
+    public static final String ACTION_STOP_MSR_READER_LISTENER = "stopMsrReaderListener";
+
+    public static final String ACTION_GET_MSR_TRACK_DATA = "com.bixolon.anction.GET_MSR_TRACK_DATA";
+
+    public static final String EXTRA_NAME_MSR_TRACK_DATA = "MsrTrackData";
 
     // Alignment string
     public static final String ALIGNMENT_LEFT = "LEFT";
@@ -133,6 +144,10 @@ public class BixolonPrint extends CordovaPlugin {
     static BixolonPrinter mBixolonPrinter;
     //
 
+    // MSR Reader
+    BroadcastReceiver mReceiver;
+    private CallbackContext msrReaderCallbackContext;
+
     @Override
     public void initialize(CordovaInterface cordova, CordovaWebView webView) {
         Log.d(TAG, "BixolonPrint.initialize_START");
@@ -150,6 +165,8 @@ public class BixolonPrint extends CordovaPlugin {
         this.lastActionArgs = null;
         this.lastActionName = null;
 
+        this.mReceiver = null;
+
         Log.d(TAG, "BixolonPrint.initialize_END");
     }
 
@@ -162,14 +179,111 @@ public class BixolonPrint extends CordovaPlugin {
         this.isValidAction = false;
         mBixolonPrinter.disconnect();
 
+        this.removeMsrReaderListener();
+
         Log.d(TAG, "BixolonPrint.onDestroy_END");
+    }
+
+    @Override
+    public void onReset() {
+        Log.d(TAG, "BixolonPrint.onReset_START");
+
+        super.onReset();
+
+        this.removeMsrReaderListener();
+
+        Log.d(TAG, "BixolonPrint.onReset_END");
+    }
+
+    private void startMsrReaderListener() {
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(ACTION_GET_MSR_TRACK_DATA);
+
+        if(this.mReceiver == null) {
+            this.mReceiver = new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    if (intent.getAction().equals(ACTION_GET_MSR_TRACK_DATA)) {
+                        Bundle bundle = intent.getBundleExtra(EXTRA_NAME_MSR_TRACK_DATA);
+                        sendMsrTrackData(getMsrTrackData(bundle), true);
+                    }
+                }
+            };
+            webView.getContext().registerReceiver(this.mReceiver, intentFilter);
+        }
+
+
+    }
+
+    private JSONObject getMsrTrackData(Bundle bundle) {
+        JSONObject obj = new JSONObject();
+
+        try {
+            byte[] mTrack1Data = bundle.getByteArray(BixolonPrinter.KEY_STRING_MSR_TRACK1);
+            byte[] mTrack2Data = bundle.getByteArray(BixolonPrinter.KEY_STRING_MSR_TRACK2);
+            byte[] mTrack3Data = bundle.getByteArray(BixolonPrinter.KEY_STRING_MSR_TRACK3);
+
+            if(mTrack1Data == null) {
+                obj.put("msrTrack1", "");
+            } else {
+                obj.put("msrTrack1", new String(mTrack1Data));
+            }
+
+            if(mTrack2Data == null) {
+                obj.put("msrTrack2", "");
+            } else {
+                obj.put("msrTrack2", new String(mTrack2Data));
+            }
+
+            if(mTrack3Data == null) {
+                obj.put("msrTrack3", "");
+            } else {
+                obj.put("msrTrack3", new String(mTrack3Data));
+            }
+
+        } catch(JSONException e) {
+            Log.e(TAG, "BixolonPrint.getMsrTrackData: " + e.getMessage(), e);
+        }
+
+        return obj;
+    }
+
+    private void sendMsrTrackData(JSONObject obj, boolean keepCallback) {
+        if(msrReaderCallbackContext != null) {
+            PluginResult result = new PluginResult(PluginResult.Status.OK, obj);
+            result.setKeepCallback(keepCallback);
+            this.msrReaderCallbackContext.sendPluginResult(result);
+        }
+    }
+
+    private void stopMsrReaderListener() {
+        this.removeMsrReaderListener();
+
+        this.sendMsrTrackData(new JSONObject(), false);
+        this.msrReaderCallbackContext = null;
+        this.cbContext.success();
+    }
+
+    private void removeMsrReaderListener() {
+        Log.d(TAG, "BixolonPrint.removeMsrReaderListener_START");
+
+        if(this.mReceiver != null) {
+            try {
+                webView.getContext().unregisterReceiver(this.mReceiver);
+                this.mReceiver = null;
+            } catch(Exception e) {
+                Log.e(TAG, "BixolonPrint.removeMsrReaderListener: Error unregistering MSR Reader receiver: " + e.getMessage(), e);
+            }
+        }
+
+        Log.d(TAG, "BixolonPrint.removeMsrReaderListener_END");
     }
 
     /**
      * Executes the request and returns PluginResult
      *
      * @param action          Action to execute
-     * @param data            JSONArray of arguments to the plugin
+     * @param args            JSONArray of arguments to the plugin
      * @param callbackContext The callback context used when calling back into JavaScript.
      * @return A PluginRequest object with a status
      */
@@ -204,6 +318,21 @@ public class BixolonPrint extends CordovaPlugin {
             JSONObject printConfig = args.optJSONObject(1);
             this.optAutoConnect = printConfig.optBoolean("autoConnect");
             this.optToastMessage = printConfig.optBoolean("toastMessage");
+        } else if (ACTION_START_MSR_READER_LISTENER.equals(action)) {
+            this.optAutoConnect = true;
+
+            if(this.msrReaderCallbackContext != null) {
+                this.cbContext.error("MSR Reader listener already started.");
+                return true;
+            }
+            this.msrReaderCallbackContext = callbackContext;
+
+            PluginResult pluginResult = new PluginResult(PluginResult.Status.NO_RESULT);
+            pluginResult.setKeepCallback(true);
+            callbackContext.sendPluginResult(pluginResult);
+        } else if (ACTION_STOP_MSR_READER_LISTENER.equals(action)) {
+            this.cbContext.success();
+            this.optAutoConnect = true;
         } else {
             this.isValidAction = false;
             this.cbContext.error("Invalid Action");
@@ -252,6 +381,10 @@ public class BixolonPrint extends CordovaPlugin {
             this.cutPaper();
         } else if (ACTION_GET_STATUS.equals(this.lastActionName)) {
             this.getStatus();
+        } else if (ACTION_START_MSR_READER_LISTENER.equals(this.lastActionName)) {
+            this.startMsrReaderListener();
+        } else if (ACTION_START_MSR_READER_LISTENER.equals(this.lastActionName)) {
+            this.stopMsrReaderListener();
         }
 
         Log.d(TAG, "BixolonPrint.onConnect_END");

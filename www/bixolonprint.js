@@ -25,11 +25,10 @@
  *
  */
 
-var BixolonPrintLoader = function(require, exports, module) {
-
 	/**
 	 * @type {exports}
 	 */
+	var cordova = require('cordova');
 	var exec = require('cordova/exec');
 
 	/**
@@ -37,12 +36,13 @@ var BixolonPrintLoader = function(require, exports, module) {
 	 * @constructor
 	 */
 	var BixolonPrint = function() {
+        var _this = this;
 
 		/**
 		 *
 		 * @type {string}
 		 */
-		this.version = "1.5.0";
+		this.version = "1.6.1";
 
 		/**
 		 *
@@ -172,6 +172,8 @@ var BixolonPrintLoader = function(require, exports, module) {
 			MODEL_1: 49,
 			MODEL_2: 50
 		};
+
+        this.msrReaderReadCallback = null;
 	};
 
 	/**
@@ -483,12 +485,61 @@ var BixolonPrintLoader = function(require, exports, module) {
 		);
 	};
 
+	BixolonPrint.prototype.startMsrReaderListener = function(successCallback, errorCallback) {
+
+        bixolonPrint.msrReaderReadCallback = successCallback;
+
+		if (!this._isFunction(successCallback)) {
+			successCallback = function(response) {
+				console.log('BixolonPrint.startMsrReaderListener success: ' + response);
+			};
+		}
+
+		if (!this._isFunction(errorCallback)) {
+			errorCallback = function(error) {
+				console.error('BixolonPrint.startMsrReaderListener failure: ' + error);
+			};
+		}
+
+        exec(
+        	bixolonPrint.msrReaderRead,
+        	errorCallback,
+        	"BixolonPrint",
+        	"startMsrReaderListener", []
+        );
+	}
+
+	BixolonPrint.prototype.msrReaderRead = function(data) {
+	    bixolonPrint.msrReaderReadCallback(data);
+	}
+
+	BixolonPrint.prototype.stopMsrReaderListener = function(successCallback, errorCallback) {
+
+		if (!this._isFunction(successCallback)) {
+			successCallback = function(response) {
+				console.log('BixolonPrint.stopMsrReaderListener success: ' + response);
+			};
+		}
+
+		if (!this._isFunction(errorCallback)) {
+			errorCallback = function(error) {
+				console.error('BixolonPrint.stopMsrReaderListener failure: ' + error);
+			};
+		}
+
+        exec(
+        	successCallback,
+        	errorCallback,
+        	"BixolonPrint",
+        	"stopMsrReaderListener", []
+        );
+	}
+
+    var bixolonPrint = new BixolonPrint();
+
 	/**
 	 *
 	 * @type {BixolonPrint}
 	 */
-	module.exports = new BixolonPrint();
-};
+	module.exports = bixolonPrint;
 
-BixolonPrintLoader(require, exports, module);
-cordova.define("cordova/plugins/BixolonPrint", BixolonPrintLoader);
