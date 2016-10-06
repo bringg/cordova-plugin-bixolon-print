@@ -3,12 +3,12 @@ BixolonPrint Corodva Plugin
 
 Cross-platform BixolonPrint Plugin for Cordova / PhoneGap. Forked from [alfonsovinti](https://github.com/alfonsovinti/cordova-plugin-bixolon-print.git)
 
-Adding support for QRCode, 1D BarCode
+Adding support for QRCode, 1D BarCode, MSR Reader listener, Connection listener
 
 ### Supported Platforms
 
 - Android (Using Bixolon SDK v2.2.9)
-- iOS (QRCode, Barcode still under development)
+- iOS (All new features still under development)
 
 ## Installation
 Below are the methods for installing this plugin automatically using command line tools.
@@ -141,7 +141,8 @@ var data = {
   barcodeSystem     : int,       // see "cordova.plugins.bixolonPrint.BarCodeSystem"
   characterPosition : int        // see "cordova.plugins.bixolonPrint.BarCodeCharacterPosition"
 };
-cordova.plugins.bixolonPrint.printQRCode(data, successCallback, errorCallback, printStatus Boolean);
+cordova.plugins.bixolonPrint.printBarCode(data, successCallback, errorCallback, printStatus Boolean);
+
 ```
 
 ### QRCode
@@ -154,6 +155,28 @@ var data = {
   model      : int,       // see "cordova.plugins.bixolonPrint.QRCodeModel"
 };
 cordova.plugins.bixolonPrint.printQRCode(data, successCallback, errorCallback, printStatus Boolean);
+```
+
+### Connection Listener
+```javascript
+// Start connection listener
+cordova.plugins.bixolonPrint.startConnectionListener(connectionCallback, errorCallback);
+
+// Stop connection listener
+cordova.plugins.bixolonPrint.stopConnectionListener(successCallback, errorCallback);
+
+cordova.plugins.bixolonPrint.reconnect(successCallback, errorCallback);
+
+cordova.plugins.bixolonPrint.disconnect(successCallback, errorCallback);
+```
+
+### MSR Reader Listener
+```javascript
+// Start MSR Reader listener
+cordova.plugins.bixolonPrint.startMsrReaderListener(connectionCallback, errorCallback);
+
+// Stop MSR Reader listener
+cordova.plugins.bixolonPrint.stopMsrReaderListener(successCallback, errorCallback);
 ```
 
 ## Examples
@@ -221,4 +244,51 @@ cordova.plugins.bixolonPrint.printQRCode({
 }, {
   codePage: cordova.plugins.bixolonPrint.CodePage.CP_THAI11
 });
+```
+
+### Start/Stop MSR Reader Listener
+
+```javascript
+var msrReaderRead = function(response) {
+  // inside response contains keys [msrTrack1, msrTrack2, msrTrack3]
+}
+
+// printer must connected. to reconnect use this
+cordova.plugins.bixolonPrint.reconnect();
+
+cordova.plugins.bixolonPrint.startMsrReaderListener(
+  msrReaderRead,
+  function(error) {
+    alert("MSR reader listener error: " + error)
+  }
+);
+
+cordova.plugins.bixolonPrint.stopMsrReaderListener();
+```
+
+### Start/Stop Connection Listener
+
+```javascript
+var connectionMessageReceived = function(response) {
+  // inside response contains keys [message, isConnected]
+}
+
+cordova.plugins.bixolonPrint.startConnectionListener(
+  connectionMessageReceived,
+  function(error) {
+    alert("Connection listener error: " + error.message);
+  }
+);
+
+cordova.plugins.bixolonPrint.stopConnectionListener();
+```
+
+### Reconnect/Disconnect manually
+
+```javascript
+// to reconnect
+cordova.plugins.bixolonPrint.reconnect();
+
+// to disconnect
+cordova.plugins.bixolonPrint.disconnect();
 ```

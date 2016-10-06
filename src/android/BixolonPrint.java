@@ -69,10 +69,10 @@ public class BixolonPrint extends CordovaPlugin {
     public static final String ACTION_CUT_PAPER = "cutPaper";
     public static final String ACTION_START_MSR_READER_LISTENER = "startMsrReaderListener";
     public static final String ACTION_STOP_MSR_READER_LISTENER = "stopMsrReaderListener";
-
-    public static final String ACTION_GET_MSR_TRACK_DATA = "com.bixolon.anction.GET_MSR_TRACK_DATA";
-
-    public static final String EXTRA_NAME_MSR_TRACK_DATA = "MsrTrackData";
+    public static final String ACTION_START_CONNECTION_LISTENER = "startConnectionListener";
+    public static final String ACTION_RECONNECT = "reconnect";
+    public static final String ACTION_DISCONNECT = "disconnect";
+    public static final String ACTION_STOP_CONNECTION_LISTENER = "stopConnectionListener";
 
     // Alignment string
     public static final String ALIGNMENT_LEFT = "LEFT";
@@ -145,8 +145,8 @@ public class BixolonPrint extends CordovaPlugin {
     //
 
     // MSR Reader
-    BroadcastReceiver mReceiver;
     private CallbackContext msrReaderCallbackContext;
+    private CallbackContext connectionListenerCallbackContext;
 
     @Override
     public void initialize(CordovaInterface cordova, CordovaWebView webView) {
@@ -165,8 +165,6 @@ public class BixolonPrint extends CordovaPlugin {
         this.lastActionArgs = null;
         this.lastActionName = null;
 
-        this.mReceiver = null;
-
         Log.d(TAG, "BixolonPrint.initialize_END");
     }
 
@@ -179,104 +177,7 @@ public class BixolonPrint extends CordovaPlugin {
         this.isValidAction = false;
         mBixolonPrinter.disconnect();
 
-        this.removeMsrReaderListener();
-
         Log.d(TAG, "BixolonPrint.onDestroy_END");
-    }
-
-    @Override
-    public void onReset() {
-        Log.d(TAG, "BixolonPrint.onReset_START");
-
-        super.onReset();
-
-        this.removeMsrReaderListener();
-
-        Log.d(TAG, "BixolonPrint.onReset_END");
-    }
-
-    private void startMsrReaderListener() {
-        IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(ACTION_GET_MSR_TRACK_DATA);
-
-        if(this.mReceiver == null) {
-            this.mReceiver = new BroadcastReceiver() {
-                @Override
-                public void onReceive(Context context, Intent intent) {
-                    if (intent.getAction().equals(ACTION_GET_MSR_TRACK_DATA)) {
-                        Bundle bundle = intent.getBundleExtra(EXTRA_NAME_MSR_TRACK_DATA);
-                        sendMsrTrackData(getMsrTrackData(bundle), true);
-                    }
-                }
-            };
-            webView.getContext().registerReceiver(this.mReceiver, intentFilter);
-        }
-
-
-    }
-
-    private JSONObject getMsrTrackData(Bundle bundle) {
-        JSONObject obj = new JSONObject();
-
-        try {
-            byte[] mTrack1Data = bundle.getByteArray(BixolonPrinter.KEY_STRING_MSR_TRACK1);
-            byte[] mTrack2Data = bundle.getByteArray(BixolonPrinter.KEY_STRING_MSR_TRACK2);
-            byte[] mTrack3Data = bundle.getByteArray(BixolonPrinter.KEY_STRING_MSR_TRACK3);
-
-            if(mTrack1Data == null) {
-                obj.put("msrTrack1", "");
-            } else {
-                obj.put("msrTrack1", new String(mTrack1Data));
-            }
-
-            if(mTrack2Data == null) {
-                obj.put("msrTrack2", "");
-            } else {
-                obj.put("msrTrack2", new String(mTrack2Data));
-            }
-
-            if(mTrack3Data == null) {
-                obj.put("msrTrack3", "");
-            } else {
-                obj.put("msrTrack3", new String(mTrack3Data));
-            }
-
-        } catch(JSONException e) {
-            Log.e(TAG, "BixolonPrint.getMsrTrackData: " + e.getMessage(), e);
-        }
-
-        return obj;
-    }
-
-    private void sendMsrTrackData(JSONObject obj, boolean keepCallback) {
-        if(msrReaderCallbackContext != null) {
-            PluginResult result = new PluginResult(PluginResult.Status.OK, obj);
-            result.setKeepCallback(keepCallback);
-            this.msrReaderCallbackContext.sendPluginResult(result);
-        }
-    }
-
-    private void stopMsrReaderListener() {
-        this.removeMsrReaderListener();
-
-        this.sendMsrTrackData(new JSONObject(), false);
-        this.msrReaderCallbackContext = null;
-        this.cbContext.success();
-    }
-
-    private void removeMsrReaderListener() {
-        Log.d(TAG, "BixolonPrint.removeMsrReaderListener_START");
-
-        if(this.mReceiver != null) {
-            try {
-                webView.getContext().unregisterReceiver(this.mReceiver);
-                this.mReceiver = null;
-            } catch(Exception e) {
-                Log.e(TAG, "BixolonPrint.removeMsrReaderListener: Error unregistering MSR Reader receiver: " + e.getMessage(), e);
-            }
-        }
-
-        Log.d(TAG, "BixolonPrint.removeMsrReaderListener_END");
     }
 
     /**
@@ -320,19 +221,25 @@ public class BixolonPrint extends CordovaPlugin {
             this.optToastMessage = printConfig.optBoolean("toastMessage");
         } else if (ACTION_START_MSR_READER_LISTENER.equals(action)) {
             this.optAutoConnect = true;
-
-            if(this.msrReaderCallbackContext != null) {
-                this.cbContext.error("MSR Reader listener already started.");
+            if(!this.startMsrReaderListener()) {
                 return true;
             }
-            this.msrReaderCallbackContext = callbackContext;
-
-            PluginResult pluginResult = new PluginResult(PluginResult.Status.NO_RESULT);
-            pluginResult.setKeepCallback(true);
-            callbackContext.sendPluginResult(pluginResult);
         } else if (ACTION_STOP_MSR_READER_LISTENER.equals(action)) {
-            this.cbContext.success();
             this.optAutoConnect = true;
+            this.stopMsrReaderListener();
+        } else if (ACTION_RECONNECT.equals(action)) {
+            this.optAutoConnect = true;
+        } else if (ACTION_DISCONNECT.equals(action)) {
+            this.disconnect();
+            return true;
+        } else if (ACTION_START_CONNECTION_LISTENER.equals(action)) {
+            this.optAutoConnect = true;
+            if(!this.startConnectionListener()) {
+                return true;
+            }
+        } else if (ACTION_STOP_CONNECTION_LISTENER.equals(action)) {
+            this.optAutoConnect = true;
+            this.stopConnectionListener();
         } else {
             this.isValidAction = false;
             this.cbContext.error("Invalid Action");
@@ -381,11 +288,9 @@ public class BixolonPrint extends CordovaPlugin {
             this.cutPaper();
         } else if (ACTION_GET_STATUS.equals(this.lastActionName)) {
             this.getStatus();
-        } else if (ACTION_START_MSR_READER_LISTENER.equals(this.lastActionName)) {
-            this.startMsrReaderListener();
-        } else if (ACTION_START_MSR_READER_LISTENER.equals(this.lastActionName)) {
-            this.stopMsrReaderListener();
         }
+
+        this.sendConnectionData();
 
         Log.d(TAG, "BixolonPrint.onConnect_END");
     }
@@ -434,6 +339,8 @@ public class BixolonPrint extends CordovaPlugin {
             } else {
                 this.cbContext.success(success);
             }
+
+            this.sendConnectionData();
         }
 
         Log.d(TAG, "BixolonPrint.onDisconnect_END");
@@ -761,6 +668,8 @@ public class BixolonPrint extends CordovaPlugin {
     private void onMessageRead(Message msg) {
         Log.d(TAG, "BixolonPrint.onMessageRead_START: " + msg.arg1);
 
+        boolean isMsrTrackDatas = false;
+
         switch (msg.arg1) {
             case BixolonPrinter.PROCESS_GET_STATUS:
                 if (msg.arg2 == BixolonPrinter.STATUS_NORMAL) {
@@ -894,14 +803,120 @@ public class BixolonPrint extends CordovaPlugin {
                         break;
                 }
                 break;
+
+            case BixolonPrinter.PROCESS_MSR_TRACK:
+                Bundle bundle = msg.getData();
+
+                isMsrTrackDatas = true;
+
+                sendMsrTrackData(getMsrTrackData(bundle), true);
+                break;
         }
 
         Log.d(TAG, "BixolonPrint.onMessageRead_END");
-        this.getStatus();
+
+        if(!isMsrTrackDatas)
+            this.getStatus();
     }
 
+    private boolean startMsrReaderListener() {
+        if(this.msrReaderCallbackContext != null) {
+            this.cbContext.error("MSR Reader listener already started.");
+            return false;
+        }
+        this.msrReaderCallbackContext = this.cbContext;
+        //this.cbContext.success();
+        return true;
+    }
 
+    private void sendMsrTrackData(JSONObject obj, boolean keepCallback) {
+        if(msrReaderCallbackContext != null) {
+            PluginResult result = new PluginResult(PluginResult.Status.OK, obj);
+            result.setKeepCallback(keepCallback);
+            this.msrReaderCallbackContext.sendPluginResult(result);
+        }
+    }
 
+    private void stopMsrReaderListener() {
+        this.sendMsrTrackData(new JSONObject(), false);
+        this.msrReaderCallbackContext = null;
+        //this.cbContext.success();
+    }
+
+    private boolean startConnectionListener() {
+        if(this.connectionListenerCallbackContext != null) {
+            this.cbContext.error(createConnectionData("Connection listener already started."));
+            return false;
+        }
+        this.connectionListenerCallbackContext = this.cbContext;
+        //this.cbContext.success(createConnectionData("Connection listener started."));
+        return true;
+    }
+
+    private JSONObject createConnectionData(String message) {
+        JSONObject obj = new JSONObject();
+
+        String msg = "";
+
+        if(message != null)
+            msg = message;
+
+        try {
+            obj.put("isConnected", this.mIsConnected);
+            obj.put("message", message);
+        } catch(JSONException e) {
+            Log.e(TAG, "BixolonPrint.createConnectionData: " + e.getMessage(), e);
+        }
+
+        return obj;
+    }
+
+    private void sendConnectionData() {
+        if(this.connectionListenerCallbackContext != null) {
+            PluginResult result = new PluginResult(PluginResult.Status.OK, createConnectionData(null));
+            result.setKeepCallback(true);
+            this.connectionListenerCallbackContext.sendPluginResult(result);
+        }
+    }
+
+    private void stopConnectionListener() {
+        this.sendConnectionData();
+        this.connectionListenerCallbackContext = null;
+        //this.cbContext.success("Connection listener stopped.");
+    }
+
+    private JSONObject getMsrTrackData(Bundle bundle) {
+        JSONObject obj = new JSONObject();
+
+        try {
+            byte[] mTrack1Data = bundle.getByteArray(BixolonPrinter.KEY_STRING_MSR_TRACK1);
+            byte[] mTrack2Data = bundle.getByteArray(BixolonPrinter.KEY_STRING_MSR_TRACK2);
+            byte[] mTrack3Data = bundle.getByteArray(BixolonPrinter.KEY_STRING_MSR_TRACK3);
+
+            if(mTrack1Data == null) {
+                obj.put("msrTrack1", "");
+            } else {
+                obj.put("msrTrack1", new String(mTrack1Data));
+            }
+
+            if(mTrack2Data == null) {
+                obj.put("msrTrack2", "");
+            } else {
+                obj.put("msrTrack2", new String(mTrack2Data));
+            }
+
+            if(mTrack3Data == null) {
+                obj.put("msrTrack3", "");
+            } else {
+                obj.put("msrTrack3", new String(mTrack3Data));
+            }
+
+        } catch(JSONException e) {
+            Log.e(TAG, "BixolonPrint.getMsrTrackData: " + e.getMessage(), e);
+        }
+
+        return obj;
+    }
 
 	/*         METODI ACCESSORI
 	 ---------------------------------------*/

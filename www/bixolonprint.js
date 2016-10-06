@@ -1,29 +1,30 @@
-/*
- *
- * Copyright (C) 2013 Alfonso Vinti <me@alfonsovinti.it>
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following
- * conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
- * OTHER DEALINGS IN THE SOFTWARE.
- *
- */
+cordova.define("it.alfonsovinti.cordova.plugins.bixolonprint.BixolonPrint", function(require, exports, module) {
+	/*
+	 *
+	 * Copyright (C) 2013 Alfonso Vinti <me@alfonsovinti.it>
+	 *
+	 * Permission is hereby granted, free of charge, to any person
+	 * obtaining a copy of this software and associated documentation
+	 * files (the "Software"), to deal in the Software without
+	 * restriction, including without limitation the rights to use,
+	 * copy, modify, merge, publish, distribute, sublicense, and/or sell
+	 * copies of the Software, and to permit persons to whom the
+	 * Software is furnished to do so, subject to the following
+	 * conditions:
+	 *
+	 * The above copyright notice and this permission notice shall be
+	 * included in all copies or substantial portions of the Software.
+	 *
+	 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+	 * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+	 * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+	 * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+	 * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+	 * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+	 * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+	 * OTHER DEALINGS IN THE SOFTWARE.
+	 *
+	 */
 
 	/**
 	 * @type {exports}
@@ -36,13 +37,13 @@
 	 * @constructor
 	 */
 	var BixolonPrint = function() {
-        var _this = this;
+		var _this = this;
 
 		/**
 		 *
 		 * @type {string}
 		 */
-		this.version = "1.6.1";
+		this.version = "1.6.2";
 
 		/**
 		 *
@@ -173,7 +174,8 @@
 			MODEL_2: 50
 		};
 
-        this.msrReaderReadCallback = null;
+		this.msrReaderReadCallback = null;
+		this.connectionCallback = null;
 	};
 
 	/**
@@ -487,7 +489,7 @@
 
 	BixolonPrint.prototype.startMsrReaderListener = function(successCallback, errorCallback) {
 
-        bixolonPrint.msrReaderReadCallback = successCallback;
+		bixolonPrint.msrReaderReadCallback = successCallback;
 
 		if (!this._isFunction(successCallback)) {
 			successCallback = function(response) {
@@ -501,16 +503,16 @@
 			};
 		}
 
-        exec(
-        	bixolonPrint.msrReaderRead,
-        	errorCallback,
-        	"BixolonPrint",
-        	"startMsrReaderListener", []
-        );
+		exec(
+			bixolonPrint.msrReaderRead,
+			errorCallback,
+			"BixolonPrint",
+			"startMsrReaderListener", []
+		);
 	}
 
 	BixolonPrint.prototype.msrReaderRead = function(data) {
-	    bixolonPrint.msrReaderReadCallback(data);
+		bixolonPrint.msrReaderReadCallback(data);
 	}
 
 	BixolonPrint.prototype.stopMsrReaderListener = function(successCallback, errorCallback) {
@@ -527,15 +529,107 @@
 			};
 		}
 
-        exec(
-        	successCallback,
-        	errorCallback,
-        	"BixolonPrint",
-        	"stopMsrReaderListener", []
-        );
+		exec(
+			successCallback,
+			errorCallback,
+			"BixolonPrint",
+			"stopMsrReaderListener", []
+		);
 	}
 
-    var bixolonPrint = new BixolonPrint();
+	BixolonPrint.prototype.startConnectionListener = function(successCallback, errorCallback) {
+
+		bixolonPrint.connectionCallback = successCallback;
+
+		if (!this._isFunction(successCallback)) {
+			successCallback = function(response) {
+				console.log('BixolonPrint.startConnectionListener success: ' + response);
+			};
+		}
+
+		if (!this._isFunction(errorCallback)) {
+			errorCallback = function(error) {
+				console.error('BixolonPrint.startConnectionListener failure: ' + error);
+			};
+		}
+
+		exec(
+			bixolonPrint.connectionChanged,
+			errorCallback,
+			"BixolonPrint",
+			"startConnectionListener", []
+		);
+	}
+
+	BixolonPrint.prototype.connectionChanged = function(data) {
+		bixolonPrint.connectionCallback(data);
+	}
+
+	BixolonPrint.prototype.stopConnectionListener = function(successCallback, errorCallback) {
+
+		if (!this._isFunction(successCallback)) {
+			successCallback = function(response) {
+				console.log('BixolonPrint.stopConnectionListener success: ' + response);
+			};
+		}
+
+		if (!this._isFunction(errorCallback)) {
+			errorCallback = function(error) {
+				console.error('BixolonPrint.stopConnectionListener failure: ' + error);
+			};
+		}
+
+		exec(
+			successCallback,
+			errorCallback,
+			"BixolonPrint",
+			"stopConnectionListener", []
+		);
+	}
+
+	BixolonPrint.prototype.reconnect = function(successCallback, errorCallback) {
+		if (!this._isFunction(successCallback)) {
+			successCallback = function(response) {
+				console.log('BixolonPrint.reconnect success: ' + response);
+			};
+		}
+
+		if (!this._isFunction(errorCallback)) {
+			errorCallback = function(error) {
+				console.error('BixolonPrint.reconnect failure: ' + error);
+			};
+		}
+
+		exec(
+			successCallback,
+			errorCallback,
+			"BixolonPrint",
+			"reconnect", []
+		);
+	}
+
+	BixolonPrint.prototype.disconnect = function(successCallback, errorCallback) {
+		if (!this._isFunction(successCallback)) {
+			successCallback = function(response) {
+				console.log('BixolonPrint.disconnect success: ' + response);
+			};
+		}
+
+		if (!this._isFunction(errorCallback)) {
+			errorCallback = function(error) {
+				console.error('BixolonPrint.disconnect failure: ' + error);
+			};
+		}
+
+		exec(
+			successCallback,
+			errorCallback,
+			"BixolonPrint",
+			"disconnect", []
+		);
+	}
+
+	var bixolonPrint = new BixolonPrint();
 
 	/**
 	 *
@@ -543,3 +637,4 @@
 	 */
 	module.exports = bixolonPrint;
 
+});
