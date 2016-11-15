@@ -50,15 +50,15 @@
 	NSMutableArray          *_printersArrayWifi;
 	NSMutableArray          *_printersArrayEthernet;
 	NSMutableArray          *_printersArrayBt;
-    
+
     int                     _printerCount;
     int                     _refreshPrinterCount;
-    
+
     BOOL                    _isInit;
     BOOL                    _isReady;
-    
+
     NSString                *_lastCommandName;
-    
+
     NSDictionary            *MAX_COL;
     NSDictionary            *PRODUCT_IDS;
 }
@@ -101,5 +101,7 @@
 - (void) _cutPaper;
 - (void) getStatus:(CDVInvokedUrlCommand *)command;
 - (void) _getStatus;
+- (void) printBarcode:(CDVInvokedUrlCommand *)command;
+- (void) _printBarcode;
 
 @end

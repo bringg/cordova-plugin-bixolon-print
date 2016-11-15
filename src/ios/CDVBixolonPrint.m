@@ -18,12 +18,12 @@
 {
     NSString *r = @"NO";
     NSString *i = @"NO";
-    
+
     if(_isInit == YES)
         i = @"YES";
     if(_isReady == YES)
         r = @"YES";
-    
+
     NSLog(@"[CDVBixolonPrint logStatus]");
     NSLog(@"============== Status Printing Start  =============\r\n");
     NSLog(@"---- [CDVBixolonPrint] isReady:             %@", r);
@@ -51,7 +51,7 @@
         if(printerController.target) {
             [printerController disconnectWithTimeout:3];
         }
-        
+
         if([_printersArrayBt count] > 0){
             printersArray = _printersArrayBt;
         }else if ([_printersArrayWifi count] > 0){
@@ -59,7 +59,7 @@
         }else if ([_printersArrayEthernet count] > 0){
             printersArray = _printersArrayEthernet;
         }
-        
+
         /* Printer Select */
         if ( printersArray != nil ) {
             printerController.target = [printersArray objectAtIndex:0];
@@ -76,14 +76,14 @@
             }
             return;
         }
-        
+
 		if(BXL_SUCCESS != [printerController selectTarget]) {
             NSLog(@"[CDVBixolonPrint] _connect: There is a problem with selected printer. You might need to refresh this list.");
             pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"There is a problem with selected printer. You might need to refresh this list."];
             [self.commandDelegate sendPluginResult:pluginResult callbackId:self.lastCommand.callbackId];
             return;
 		}
-        
+
         /* Connection Mode Check */
         NSLog(@"[CDVBixolonPrint] _connect: Auto Connect NO");
         printerController.AutoConnection = BXL_CONNECTIONMODE_NOAUTO;
@@ -104,6 +104,63 @@
     [printerController disconnect];
 }
 
+//
+// printBarcode
+//
+- (void) printBarcode:(CDVInvokedUrlCommand *)command
+{
+    NSLog(@"[CDVBixolonPrint printBarcode] init!");
+    if(_isInit != YES){
+        [self initAllObject];
+    }
+    self.lastCommand = command;
+    _lastCommandName = @"printBarcode";
+    [self connect];
+}
+
+- (void) _printBarcode
+{
+    NSLog(@"[CDVBixolonPrint _printBarcode] start!");
+
+
+    // Fetch arguments
+    NSDictionary *printData = [self.lastCommand.arguments objectAtIndex:0];
+    NSDictionary *printConfig = [self.lastCommand.arguments objectAtIndex:1];
+
+    // Initialize printer
+    [printerController initializePrinter];
+
+    int codePage      = [[printConfig objectForKey:@"codePage"] intValue];
+
+    printerController.textEncoding = 0x0C;     //Español Encoding
+    printerController.characterSet = codePage;
+
+
+    if([printerController isSupport_Barcode]) {
+        NSString* text = [[printData objectForKey:@"text"] stringValue];
+        long barcodeSystem = [[printData objectForKey:@"barcodeSystem"] longValue];
+        long width = [[printData objectForKey:@"width"] longValue];
+        long height = [[printData objectForKey:@"height"] longValue];
+
+
+        CDVPluginResult* pluginResult;
+
+        long result = [printerController printBarcode:((char*)[text UTF8String]) symbology:barcodeSystem width:width height:height];
+        if( BXL_SUCCESS != result) {
+            NSLog(@"[CDVBixolonPrint _printBarcode] Fail!");
+            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Fail print text!"];
+        } else {
+            NSLog(@"[CDVBixolonPrint _printBarcode] Success! text = %@", text);
+            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+        }
+
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:self.lastCommand.callbackId];
+    }
+
+
+
+}
+
 // ---------------------------------------------------
 // printText
 // ---------------------------------------------------
@@ -120,37 +177,37 @@
 - (void) _printText
 {
     NSLog(@"[CDVBixolonPrint _printText] start!");
-    
+
     CDVPluginResult* pluginResult = nil;
-    
+
     NSArray *textLines = [self.lastCommand.arguments objectAtIndex:0];
     NSDictionary *printConfig = [self.lastCommand.arguments objectAtIndex:1];
-    
+
     NSString *hrBCode = @"[hr]";
     int paperWidth    = 0;
     BOOL formFeed     = [[printConfig objectForKey:@"formFeed"] boolValue];
     int lineFeed      = [[printConfig objectForKey:@"lineFeed"] intValue];
     int codePage      = [[printConfig objectForKey:@"codePage"] intValue];
-    
+
     [printerController initializePrinter];
-    
+
     //printerController.textEncoding = BXL_TEXTENCODING_SINGLEBYTEFONT;
     printerController.textEncoding = 0x0C;     //Español Encoding
     printerController.characterSet = codePage;
-    
+
     if (textLines != nil) {
         [printerController checkPrinter:BXL_MASK_ALL];
-        
+
         paperWidth = [[MAX_COL objectForKey:printerController.target.name] intValue];
-        
+
         for (NSUInteger i = 0, count = [textLines count]; i < count; i++) {
             id arg = [textLines objectAtIndex:i];
-            
+
             if (![arg isKindOfClass:[NSDictionary class]]) {
                 NSLog(@"[CDVBixolonPrint _printText] arg = %@", arg);
                 continue;
             }
-            
+
             NSDictionary *textLine  = arg;
             NSString *text          = [textLine objectForKey:@"text"];
             NSString *align         = [textLine objectForKey:@"textAlign"];
@@ -158,12 +215,12 @@
             NSNumber *height        = [textLine objectForKey:@"textHeight"];
             NSString *fontType      = [textLine objectForKey:@"fontType"];
             NSString *fontStyle     = [textLine objectForKey:@"fontStyle"];
-            
+
             [self setAlign:align];
             [self setSize:[width intValue] :[height intValue]];
             [self setFontType:fontType];
             [self setFontStyle:fontStyle];
-            
+
             if( text ) {
                 if ( [text length] >= 5 ) {
                     if( [[text substringToIndex:4] isEqualToString:hrBCode] && BXL_SUCCESS==[printerController checkPrinter:BXL_MASK_ALL] ) {
@@ -174,7 +231,7 @@
                         }
                     }
                 }
-                
+
                 if( BXL_SUCCESS != [printerController printText:[text stringByAppendingFormat:@"\r\n"]]) {
                     NSLog(@"[CDVBixolonPrint _printText] Fail!");
                     pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Fail print text!"];
@@ -185,20 +242,20 @@
                 }
             }
         } // end for
-        
+
         if(formFeed) {
             [printerController nextPrintPos];
         } else {
             [printerController lineFeed:lineFeed];
         }
-        
+
         [printerController cutPaper];
         [printerController openDrawer];
     } else {
         NSLog(@"[CDVBixolonPrint _printText] Error! Arg was null.");
         pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Arg was null"];
     }
-    
+
     //[self disconnect];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:self.lastCommand.callbackId];
 }
@@ -219,33 +276,33 @@
 - (void) _cutPaper
 {
     NSLog(@"[CDVBixolonPrint _cutPaper] ");
-    
+
     CDVPluginResult* pluginResult = nil;
     NSDictionary *printConfig = [self.lastCommand.arguments objectAtIndex:0];
-    
+
     if (printConfig != nil) {
         NSLog(@"[CDVBixolonPrint _cutPaper] Success!");
-        
+
         BOOL formFeed = [[printConfig objectForKey:@"formFeed"] boolValue];
         int lineFeed = [[printConfig objectForKey:@"lineFeed"] intValue];
 
         [printerController initializePrinter];
-    
+
         if (formFeed) {
             [printerController nextPrintPos];
         } else {
             [printerController lineFeed:lineFeed];
         }
-    
+
         [printerController cutPaper];
         [printerController openDrawer];
-        
+
         pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
     } else {
         NSLog(@"[CDVBixolonPrint _cutPaper] Error! Arg was null.");
         pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Arg was null"];
     }
-    
+
     //[self disconnect];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:self.lastCommand.callbackId];
 }
@@ -265,13 +322,13 @@
 }
 - (void) _getStatus
 {
-    
+
     NSLog(@"[CDVBixolonPrint _getStatus] ");
-    
+
     CDVPluginResult* pluginResult = nil;
     BOOL printStatus = [[self.lastCommand.arguments objectAtIndex:0] boolValue];
     [printerController initializePrinter];
-    
+
     if(BXL_SUCCESS==[printerController checkPrinter:BXL_MASK_ALL])
     {
         NSLog(@"[CDVBixolonPrint _getStatus] Success!");
@@ -279,12 +336,12 @@
         NSString *nameStr    = printerController.target.name;
         NSString *versionStr = printerController.target.versionStr;
         NSString *macAddress = printerController.target.macAddress;
-        
+
         NSString *stateCOVER = (printerController.state&BXL_STS_COVEROPEN)?@"OPENED": @"CLOSED";
         NSString *statePAPER = (printerController.state&BXL_STS_PAPEREMPTY)?@"EMPTY": @"FILL";
-        
+
         //NSString *bluetoothDeviceName = printerController.target.bluetoothDeviceName;
-        
+
         NSString *powerStatus;
         switch(printerController.power)
         {
@@ -304,8 +361,8 @@
                 powerStatus = @"LOW";
                 break;
         }
-        
-        
+
+
         NSDictionary *jsonObj = [[NSDictionary alloc] initWithObjectsAndKeys:
                                  stateCOVER,  @"cover",
                                  statePAPER,  @"paper",
@@ -316,12 +373,12 @@
                                  nameStr,     @"printerName",
                                  macAddress,  @"printerAddress"
                                  , nil];
-        
+
         pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:jsonObj];
-        
+
         if ( printStatus ) {
             NSString* strPrintText = [NSString stringWithFormat:@"Cover: %@\r\nPaper: %@\r\nBattery: %@\r\nFirmware Version: %@\r\nManufacturer: %@\r\nPrinter Model: %@\r\nPrinter Name: %@\r\nPrinter Address: %@\r\n", stateCOVER, statePAPER, powerStatus, versionStr, @"BIXOLON", modelStr, nameStr, macAddress];
-            
+
             [printerController printText:strPrintText];
             [printerController lineFeed:3];
             [printerController cutPaper];
@@ -330,7 +387,7 @@
         NSLog(@"[CDVBixolonPrint _getStatus] Error! Not status avaleable.");
         pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Arg was null"];
     }
-    
+
     //[self disconnect];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:self.lastCommand.callbackId];
 }
@@ -370,11 +427,11 @@
     [self initPrinterController];
     [self initTableObject];
     _lock = [NSLock new];
-    
+
     _printerCount        = 0;
     _refreshPrinterCount = 0;
     _lastCommandName     = nil;
-    
+
     MAX_COL = @{
                 @"SPP-R200"      : @0,
                 @"SPP-100"       : @0,
@@ -387,7 +444,7 @@
                 @"SPP-R300"      : @48,
                 @"SPP-R400"      : @69,
             };
-    
+
     PRODUCT_IDS = @{
                     @"10" : @"SPP-R200",
                     @"18" : @"SPP-100",
@@ -400,7 +457,7 @@
                     @"33" : @"SPP-R300",
                     @"41" : @"SPP-R400",
                 };
-    
+
     _isInit = YES;
 }
 // ---------------------------------------------------
@@ -412,14 +469,14 @@
     [self releasePrinterController];
     [self releseTableObject];
     _lock = nil;
-    
+
     _printerCount        = 0;
     _refreshPrinterCount = 0;
     _lastCommandName     = nil;
-    
+
     selectPrinter = nil;
     lastCommand   = nil;
-    
+
     _isInit  = NO;
     _isReady = NO;
 }
@@ -508,22 +565,22 @@
         case BXL_CONNECTIONCLASS_WIFI:
             printersArray = _printersArrayWifi;
             break;
-            
+
         case BXL_CONNECTIONCLASS_ETHERNET:
             printersArray = _printersArrayEthernet;
             break;
-            
+
         case BXL_CONNECTIONCLASS_BT:
             printersArray = _printersArrayBt;
             break;
     }
     if(printersArray == nil)
         return;
-    
+
 	BOOL bRefresh = YES;
-	
+
     [_lock lock];
-	
+
 	for( BXPrinter *p in printersArray )
 	{
 		if( [p.address isEqualToString:printer.address] )
@@ -701,7 +758,7 @@
            text:(NSString *)text
 {
     NSLog(@"[CDVBixolonPrint message] %@", text);
-    
+
     UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"sample" message:text delegate:nil cancelButtonTitle:@"OK" otherButtonTitles:nil];
     [alert show];
 }
@@ -743,7 +800,7 @@
             text = [NSString stringWithFormat:@"%s", data.bytes];
         }
     }
-    
+
     NSLog(@"[CDVBixolonPrint msrArrived] %@", text);
 }
 // ---------------------------------------------------
@@ -780,7 +837,7 @@
         NSLog(@"[CDVBixolonPrint didFindPrinter] %@", [NSString stringWithFormat:@"%@ (%@)", printer.name, printer.macAddress ]);
     else
         NSLog(@"[CDVBixolonPrint didFindPrinter] %@", [NSString stringWithFormat:@"%@ (%@)", printer.address, printer.macAddress ]);
-    
+
     [self addPrinterList:printer];
 }
 
@@ -806,17 +863,19 @@
     NSLog(@" * printer address    : %@ \r\n", printer.address);
     NSLog(@" * printer macAddress : %@ \r\n", printer.macAddress);
     NSLog(@"=========== Information Printing Finish ===========\r\n");
-    
+
     _isReady = YES;
-    
+
     if ( [_lastCommandName isEqualToString:@"printText"] ) {
         [self _printText];
+    } else if ( [_lastCommandName isEqualToString:@"printBarcode"] ) {
+        [self _printBarcode];
     } else if ( [_lastCommandName isEqualToString:@"cutPaper"] ) {
         [self _cutPaper];
     } else if ( [_lastCommandName isEqualToString:@"getStatus"] ) {
         [self _getStatus];
     } else {
-        
+
     }
 }
 // ---------------------------------------------------
