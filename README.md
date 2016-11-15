@@ -1,6 +1,9 @@
 BixolonPrint Corodva Plugin
 ==============
 
+## Note to Bringg Developers
+This is fork of https://github.com/xyzxyz442/cordova-plugin-bixolon-print - with bug fix.
+
 Cross-platform BixolonPrint Plugin for Cordova / PhoneGap. Forked from [alfonsovinti](https://github.com/alfonsovinti/cordova-plugin-bixolon-print.git)
 
 Adding support for QRCode, 1D BarCode, MSR Reader listener, Connection listener
